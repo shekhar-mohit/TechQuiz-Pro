@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TechQuiz Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #121a35;
+      --accent: #6cf2c2;
+      --accent2: #7aa2ff;
+      --text: #e6e9f2;
+      --muted: #9aa3c7;
+      --danger: #ff6b6b;
+      --success: #4cd964;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at top, #121a35, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, #141d3f, var(--card));
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      margin-bottom: 24px;
+      animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: #0f1633;
+      color: var(--text);
+      outline: none;
+    }
+
+    button {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border: none;
+      color: #081018;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-top: 16px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(108,242,194,0.4);
+    }
+
+    .question {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+
+    .options {
+      display: grid;
+      gap: 12px;
+    }
+
+    .option {
+      padding: 14px;
+      border-radius: 12px;
+      background: #0f1633;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .option:hover {
+      border-color: var(--accent2);
+    }
+
+    .option.correct {
+      background: rgba(76,217,100,0.15);
+      border-color: var(--success);
+    }
+
+    .option.wrong {
+      background: rgba(255,107,107,0.15);
+      border-color: var(--danger);
+    }
+
+    .hidden { display: none; }
+
+    .result {
+      text-align: center;
+    }
+
+    .score {
+      font-size: 42px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚡ TechQuiz Pro</h1>
+    <div>Skill • Score • Improve</div>
+  </header>
+
+  <div class="container">
+
+    <!-- SETUP -->
+    <div class="card" id="setupCard">
+      <h2>Start a Technical Quiz</h2>
+      <div class="setup-grid">
+        
+        <div>
+          <label>Category</label>
+          <input id="category" placeholder="Linux, Docker, DevOps..." />
+        </div>
+        <div>
+          <label>Difficulty</label>
+          <select id="difficulty">
+            <option value="">Any</option>
+            <option>Easy</option>
+            <option>Medium</option>
+            <option>Hard</option>
+          </select>
+        </div>
+        <div>
+          <label>Tags</label>
+          <input id="tags" placeholder="bash, sql, kubernetes" />
+        </div>
+      </div>
+      <button onclick="startQuiz()">🚀 Start Quiz</button>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="card hidden" id="quizCard">
+      <div id="qCounter"></div>
+      <div class="question" id="questionText"></div>
+      <div class="options" id="options"></div>
+      <button onclick="nextQuestion()">Next</button>
+    </div>
+
+    <!-- RESULT -->
+    <div class="card hidden result" id="resultCard">
+      <h2>Your Result</h2>
+      <div class="score" id="scoreText"></div>
+      <p id="analysis"></p>
+      <button onclick="location.reload()">🔁 Retry</button>
+    </div>
+
+  </div>
+
+  <footer>
+    Built with ❤️ using QuizAPI.io | Future: Custom file-based quizzes
+  </footer>
+
+  <script>
+    let questions = [];
+    let index = 0;
+    let score = 0;
+
+    async function startQuiz() {
+      const key = "hVz7Gg6gQXynB3cY8tdc00Y9gpb1f0hYZItvel8X"; // hardcoded API key
+      if (!key) return alert('API key required');
+
+      let url = 'https://quizapi.io/api/v1/questions?limit=5';
+      if (category.value) url += `&category=${category.value}`;
+      if (difficulty.value) url += `&difficulty=${difficulty.value}`;
+      if (tags.value) url += `&tags=${tags.value}`;
+
+      const res = await fetch(url, {
+        headers: { 'X-Api-Key': key }
+      });
+
+      questions = await res.json();
+      setupCard.classList.add('hidden');
+      quizCard.classList.remove('hidden');
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      const q = questions[index];
+      qCounter.innerText = `Question ${index + 1} / ${questions.length}`;
+      questionText.innerText = q.question;
+      options.innerHTML = '';
+
+      Object.entries(q.answers).forEach(([key, val]) => {
+        if (!val) return;
+        const div = document.createElement('div');
+        div.className = 'option';
+        div.innerText = val;
+        div.onclick = () => selectAnswer(div, key, q);
+        options.appendChild(div);
+      });
+    }
+
+    function selectAnswer(el, key, q) {
+      [...options.children].forEach(o => o.onclick = null);
+      const correctKey = Object.keys(q.correct_answers).find(k => q.correct_answers[k] === 'true');
+
+      if (key + '_correct' === correctKey) {
+        el.classList.add('correct');
+        score++;
+      } else {
+        el.classList.add('wrong');
+        [...options.children].forEach(o => {
+          if (o.innerText === q.answers[correctKey.replace('_correct','')]) {
+            o.classList.add('correct');
+          }
+        });
+      }
+    }
+
+    function nextQuestion() {
+      index++;
+      if (index >= questions.length) return showResult();
+      loadQuestion();
+    }
+
+    function showResult() {
+      quizCard.classList.add('hidden');
+      resultCard.classList.remove('hidden');
+      scoreText.innerText = `${score} / ${questions.length}`;
+      analysis.innerText = score >= questions.length / 2
+        ? 'Great job! Strong technical fundamentals.'
+        : 'Keep practicing. Review explanations and retry.';
+    }
+  </script>
+</body>
+</html>
